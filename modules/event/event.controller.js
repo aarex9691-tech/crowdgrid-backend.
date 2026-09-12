@@ -1,4 +1,4 @@
-const { createEvent } = require('./event.service');
+const { createEvent, getAllEvents, getEventById } = require('./event.service');
 
 const createEventHandler = async (req, res) => {
     try {
@@ -25,4 +25,25 @@ const createEventHandler = async (req, res) => {
     }
 };
 
-module.exports = { createEventHandler };
+const getAllEventsHandler = async (req, res) => {
+    try {
+        const events = await getAllEvents();
+        res.status(200).json(events);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getEventByIdHandler = async (req, res) => {
+    try {
+        const event = await getEventById(req.params.id);
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+        res.status(200).json(event);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { createEventHandler, getAllEventsHandler, getEventByIdHandler };
