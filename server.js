@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
@@ -12,7 +13,7 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-
+app.use(cors());
 // Routes will go here later
 app.get('/health', (req, res) => res.send('Server is running'));
 
