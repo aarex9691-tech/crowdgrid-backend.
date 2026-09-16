@@ -1,23 +1,25 @@
-const { createEvent, getAllEvents, getEventById } = require('./event.service');
+const { Event, PublicEvent, CorporateEvent, PilgrimEvent } = require('./event.model');
 
-const createEventHandler = async (req, res) => {
+const createEvent = async (req, res) => {
     try {
-        const { title, description, targetFunds, status } = req.body;
-        
-        // Host ID is securely derived from the authenticated user token via authGuard
-        const hostId = req.user._id;
+        const { eventType, ...eventData } = req.body;
 
-        if (!title || !description || !targetFunds) {
-            return res.status(400).json({ message: 'Please provide title, description, and targetFunds' });
+        // Attach the mock user ID to the event
+        eventData.organizerId = req.user._id;
+
+        let newEvent;
+
+        // Dynamically create the correct polymorphic event
+        if (eventType === 'Public') {
+            newEvent = await PublicEvent.create(eventData);
+        } else if (eventType === 'Corporate') {
+            eventData.companyName = req.user.organizationName;
+            newEvent = await CorporateEvent.create(eventData);
+        } else if (eventType === 'Pilgrim') {
+            newEvent = await PilgrimEvent.create(eventData);
+        } else {
+            return res.status(400).json({ message: 'Invalid eventType' });
         }
-
-        const newEvent = await createEvent({
-            title,
-            description,
-            hostId,
-            targetFunds,
-            status
-        });
 
         res.status(201).json(newEvent);
     } catch (error) {
@@ -25,25 +27,24 @@ const createEventHandler = async (req, res) => {
     }
 };
 
-const getAllEventsHandler = async (req, res) => {
+const getEvents = async (req, res) => {
     try {
-        const events = await getAllEvents();
+        // Dynamic Access Control: Everyone sees Public events
+        const query = { $or: [{ eventType: 'Public' }] };
+
+        // If user is authenticated, they also see their own events and corporate events
+        if (req.user) {
+            query.$or.push({ organizerId: req.user._id });
+            if (req.user.organizationName) {
+                query.$or.push({ companyName: req.user.organizationName });
+            }
+        }
+
+        const events = await Event.find(query);
         res.status(200).json(events);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-const getEventByIdHandler = async (req, res) => {
-    try {
-        const event = await getEventById(req.params.id);
-        if (!event) {
-            return res.status(404).json({ message: 'Event not found' });
-        }
-        res.status(200).json(event);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-module.exports = { createEventHandler, getAllEventsHandler, getEventByIdHandler };
+module.exports = { createEvent, getEvents };
