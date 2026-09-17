@@ -11,12 +11,11 @@ const passSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    passType: {
+    status: {
         type: String,
-        default: 'general' // e.g., general, VIP
+        enum: ['Active', 'Used', 'Cancelled'],
+        default: 'Active'
     }
-}, {
-    timestamps: true
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Pass', passSchema);
