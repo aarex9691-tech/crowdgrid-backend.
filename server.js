@@ -2,6 +2,9 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 const eventRoutes = require('./modules/event/event.routes');
 // Load environment variables
 dotenv.config();
@@ -13,7 +16,21 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+// Security Middlewares
+app.use(helmet());
+//app.use(mongoSanitize());
+
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use('/api', apiLimiter);
 
 
 // Routes will go here later

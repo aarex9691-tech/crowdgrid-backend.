@@ -29,7 +29,12 @@ const createEvent = async (req, res) => {
 
 const getEvents = async (req, res) => {
     try {
-        // Dynamic Access Control: Everyone sees Public events
+        // 1. Pagination Parameters from URL
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        // 2. Dynamic Access Control: Everyone sees Public events
         const query = { $or: [{ eventType: 'Public' }] };
 
         // If user is authenticated, they also see their own events and corporate events
@@ -40,8 +45,20 @@ const getEvents = async (req, res) => {
             }
         }
 
-        const events = await Event.find(query);
-        res.status(200).json(events);
+        // 3. Fetch events and total count concurrently
+        const events = await Event.find(query).skip(skip).limit(limit);
+        const totalEvents = await Event.countDocuments(query);
+
+        // 4. Return structured response with metadata
+        res.status(200).json({
+            events,
+            pagination: {
+                totalEvents,
+                totalPages: Math.ceil(totalEvents / limit),
+                currentPage: page,
+                limit
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
